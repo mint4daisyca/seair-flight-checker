@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+debug_last_response.html
+debug_screenshot.png
