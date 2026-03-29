@@ -194,7 +194,8 @@ with st.sidebar:
 
 
 # ── Main Area ─────────────────────────────────────────────
-st.caption(f"出發日期：{travel_date.strftime('%Y-%m-%d')}")
+end_display = (travel_date + timedelta(days=6)).strftime('%Y-%m-%d')
+st.caption(f"查詢範圍：{travel_date.strftime('%Y-%m-%d')} 至 {end_display}（連續7天）")
 st.divider()
 
 if search_btn:
@@ -204,32 +205,36 @@ if search_btn:
         date_str = travel_date.strftime("%Y-%m-%d")
         a, c, i = int(adults), int(children), int(infants)
         all_dfs = []
+        search_dates = [travel_date + timedelta(days=d) for d in range(7)]
 
         for departure_name, arrival_name in selected_routes:
             start_id = LOCATIONS[departure_name]
             end_id = LOCATIONS[arrival_name]
 
-            with st.spinner(f"搜尋 {IATA[departure_name]}/{IATA[arrival_name]} ..."):
-                try:
-                    raw = fetch_flights(start_id, end_id, date_str, a, c, i)
-                    if raw:
-                        df = parse_flights_to_df(raw, departure_name, arrival_name, date_str)
-                        all_dfs.append(df)
-                    else:
-                        st.info(f"{IATA[departure_name]}/{IATA[arrival_name]}: no flights on {date_str}.")
-                except Exception as e:
-                    st.error(f"{IATA[departure_name]}/{IATA[arrival_name]}: {e}")
+            with st.spinner(f"搜尋 {IATA[departure_name]}/{IATA[arrival_name]} (7天) ..."):
+                for day in search_dates:
+                    day_str = day.strftime("%Y-%m-%d")
+                    try:
+                        raw = fetch_flights(start_id, end_id, day_str, a, c, i)
+                        if raw:
+                            df = parse_flights_to_df(raw, departure_name, arrival_name, day_str)
+                            all_dfs.append(df)
+                    except Exception as e:
+                        st.error(f"{IATA[departure_name]}/{IATA[arrival_name]} ({day_str}): {e}")
 
         if all_dfs:
             combined = pd.concat(all_dfs, ignore_index=True)
-            st.subheader(f"✈️ {len(combined)} results across {len(all_dfs)} route(s)")
+            end_date_str = (travel_date + timedelta(days=6)).strftime("%Y-%m-%d")
+            st.subheader(f"✈️ {len(combined)} 個航班（{date_str} 至 {end_date_str}）")
             st.dataframe(
                 combined.style.applymap(style_seats, subset=["Seats"]),
                 use_container_width=True,
                 hide_index=True,
             )
             csv = combined.to_csv(index=False, encoding="utf-8-sig")
-            st.download_button("📥 Download CSV", data=csv, file_name=f"seair_{date_str}.csv", mime="text/csv")
+            st.download_button("📥 Download CSV", data=csv, file_name=f"seair_{date_str}_7days.csv", mime="text/csv")
+        else:
+            st.info(f"所選航線在 {date_str} 起7天內均沒有航班。")
 
 else:
     st.info("請在左側勾選航線，然後點擊「查詢航班」按鈕。")
