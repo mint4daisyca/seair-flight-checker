@@ -129,7 +129,7 @@ def parse_flights_to_df(raw: list[dict], departure_name: str, arrival_name: str,
                 "Departure": dep_time,
                 "Class": fare.get("label", fare.get("fare_type", "")),
                 "Seats": seats,
-                "Price": f"${adult_price + fee_total:.2f}",
+                "Price": f"${adult_price:.2f}",
                 "_seats_av": seats,
             })
 
