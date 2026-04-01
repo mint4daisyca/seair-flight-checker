@@ -103,6 +103,8 @@ def parse_flights_to_df(raw: list[dict], departure_name: str, arrival_name: str,
     """將 API 回傳的航班資料轉為 DataFrame"""
     rows = []
     for item in raw:
+        if not isinstance(item, dict):
+            continue
         info = item.get("flight_info", {})
         fares_avail = item.get("fares_available", [])
         all_fares = item.get("all_fares", [])
@@ -216,7 +218,7 @@ if search_btn:
                     day_str = day.strftime("%Y-%m-%d")
                     try:
                         raw = fetch_flights(start_id, end_id, day_str, a, c, i)
-                        if raw:
+                        if raw and isinstance(raw, list):
                             df = parse_flights_to_df(raw, departure_name, arrival_name, day_str)
                             all_dfs.append(df)
                     except Exception as e:
@@ -227,7 +229,7 @@ if search_btn:
             end_date_str = (travel_date + timedelta(days=6)).strftime("%Y-%m-%d")
             st.subheader(f"✈️ {len(combined)} 個航班（{date_str} 至 {end_date_str}）")
             st.dataframe(
-                combined.style.applymap(style_seats, subset=["Seats"]),
+                combined.style.map(style_seats, subset=["Seats"]),
                 use_container_width=True,
                 hide_index=True,
             )
