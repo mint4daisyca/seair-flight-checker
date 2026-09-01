@@ -1,5 +1,5 @@
 import streamlit as st
-import requests
+from curl_cffi import requests
 import pandas as pd
 from datetime import datetime, timedelta
 
@@ -52,9 +52,19 @@ FARE_LABELS = {
 }
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     "Referer": "https://www.seairseaplanes.com/book-now/book-a-flight",
 }
+
+BOOKING_PAGE_URL = "https://www.seairseaplanes.com/book-now/book-a-flight"
+
+
+@st.cache_resource(ttl=1800)
+def get_session() -> requests.Session:
+    """建立 session（模擬 Chrome TLS 指紋）並訪問訂票頁面取得 Incapsula 驗證 cookie，讓後續 API 請求能通過反機械人檢查"""
+    session = requests.Session(impersonate="chrome")
+    session.headers.update(HEADERS)
+    session.get(BOOKING_PAGE_URL, timeout=15)
+    return session
 
 
 # ── API 函數 ──────────────────────────────────────────────
@@ -73,7 +83,7 @@ def fetch_flights(start_loc: int, end_loc: int, date_str: str,
         "pax_i": str(infants),
         "action": "flight_search",
     }
-    r = requests.get(API_BASE, params=params, headers=HEADERS, timeout=15)
+    r = get_session().get(API_BASE, params=params, timeout=15)
     r.raise_for_status()
     return r.json()
 
@@ -93,7 +103,7 @@ def fetch_lowest_prices(start_loc: int, end_loc: int, start_date: str,
         "start_loc": str(start_loc),
         "end_loc": str(end_loc),
     }
-    r = requests.get(API_BASE, params=params, headers=HEADERS, timeout=15)
+    r = get_session().get(API_BASE, params=params, timeout=15)
     r.raise_for_status()
     return r.json()
 
